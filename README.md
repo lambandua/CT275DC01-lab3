@@ -2,11 +2,11 @@
 
 Học kỳ 3, Năm học: 2025-2026
 
-**Họ tên**: ...
+**Họ tên**: Nguyễn Nhật Tân
 
-**MSSV**: ...
+**MSSV**: DC25V7K044
 
-**Lớp HP**: ...
+**Lớp HP**: CT275
 
 
 
