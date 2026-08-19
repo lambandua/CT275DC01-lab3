@@ -7,49 +7,39 @@ use CT275\Labs\Paginator;
 
 $contact = new Contact($PDO);
 
-// Số bản ghi trên mỗi trang
-$limit = isset($_GET['limit']) && is_numeric($_GET['limit'])
-    ? (int) $_GET['limit']
-    : 5;
+$limit = (isset($_GET['limit']) && is_numeric($_GET['limit']))
+  ? (int) $_GET['limit']
+  : 5;
 
-// Trang hiện tại
-$page = isset($_GET['page']) && is_numeric($_GET['page'])
-    ? (int) $_GET['page']
-    : 1;
+$page = (isset($_GET['page']) && is_numeric($_GET['page']))
+  ? (int) $_GET['page']
+  : 1;
 
-// Không cho limit nhỏ hơn 1
-if ($limit < 1) {
-    $limit = 5;
-}
-
-// Tạo paginator
 $paginator = new Paginator(
-    $limit,
-    $contact->count(),
-    $page
+  totalRecords: $contact->count(),
+  recordsPerPage: $limit,
+  currentPage: $page
 );
 
-// Lấy contacts theo trang
 $contacts = $contact->paginate(
-    $paginator->recordOffset,
-    $paginator->recordsPerPage
+  $paginator->recordOffset,
+  $paginator->recordsPerPage
 );
 
-// Danh sách các trang
-$pages = $paginator->getPages(3);
+$pages = $paginator->getPages(length: 3);
 
 include_once __DIR__ . '/../src/partials/header.php';
 ?>
 
 <body>
 
-  <?php include_once __DIR__ . '/../src/partials/navbar.php' ?>
+  <?php include_once __DIR__ . '/../src/partials/navbar.php'; ?>
 
   <!-- Main Page Content -->
   <div class="container">
 
     <?php
-    $subtitle = 'View your all contacs here.';
+    $subtitle = 'View all your contacts here.';
     include_once __DIR__ . '/../src/partials/heading.php';
     ?>
 
@@ -65,6 +55,7 @@ include_once __DIR__ . '/../src/partials/header.php';
 
           <thead>
             <tr>
+              <th scope="col">Avatar</th>
               <th scope="col">Name</th>
               <th scope="col">Phone</th>
               <th scope="col">Date Created</th>
@@ -76,121 +67,97 @@ include_once __DIR__ . '/../src/partials/header.php';
           <tbody>
 
             <?php foreach ($contacts as $contact): ?>
-
               <tr>
-
                 <td>
-                  <?= html_escape($contact->name) ?>
+                  <?php if (!empty($contact->avatar)): ?>
+                    <img
+                      src="<?= html_escape($contact->avatar) ?>"
+                      alt="Avatar"
+                      width="60"
+                      height="60"
+                      class="rounded-circle object-fit-cover">
+                  <?php else: ?>
+                    No avatar
+                  <?php endif ?>
                 </td>
-
                 <td>
-                  <?= html_escape($contact->phone) ?>
+                  <?= htmlspecialchars($contact->name) ?>
                 </td>
-
                 <td>
-                  <?= html_escape(
-                    date(
-                      'd-m-Y',
-                      strtotime($contact->created_at)
-                    )
-                  ) ?>
+                  <?= htmlspecialchars($contact->phone) ?>
                 </td>
-
                 <td>
-                  <?= html_escape($contact->notes) ?>
+                  <?= htmlspecialchars($contact->created_at) ?>
                 </td>
-
-                <td class="d-flex justify-content-center">
-
+                <td>
+                  <?= htmlspecialchars($contact->notes) ?>
+                </td>
+                <td>
                   <a
                     href="/edit.php?id=<?= $contact->id ?>"
-                    class="btn btn-xs btn-warning me-1"
-                    title="Edit"
-                  >
-                    <i class="fa fa-pencil"></i>
-                    Edit
+                    class="btn btn-sm btn-primary">
+                    <i class="fa fa-edit"></i> Edit
                   </a>
-
-                  <a
-                    href="/delete.php?id=<?= $contact->id ?>"
-                    class="btn btn-xs btn-danger"
-                    title="Delete"
-                  >
-                    <i class="fa fa-trash"></i>
-                    Delete
-                  </a>
-
+                  <form
+                    class="d-inline ms-1"
+                    action="/delete.php"
+                    method="POST">
+                    <input
+                      type="hidden"
+                      name="id"
+                      value="<?= $contact->id ?>">
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-danger"
+                      name="delete-contact">
+                      <i class="fa fa-trash"></i> Delete
+                    </button>
+                  </form>
                 </td>
-
               </tr>
-
             <?php endforeach; ?>
-
           </tbody>
-
         </table>
         <!-- Table Ends Here -->
 
-
         <!-- Pagination -->
         <nav class="d-flex justify-content-center">
-
           <ul class="pagination">
 
             <!-- Previous -->
-            <li class="page-item">
-
+            <li class="page-item<?= $paginator->getPrevPage() ? '' : ' disabled' ?>">
               <a
                 role="button"
-                href="/?page=<?= $paginator->getPrevPage() ?: 1 ?>&limit=<?= $limit ?>"
-                class="page-link"
-                <?= $paginator->getPrevPage() === false ? 'aria-disabled="true"' : '' ?>
-              >
+                href="/?page=<?= $paginator->getPrevPage() ?>&limit=<?= $limit ?>"
+                class="page-link">
                 <span>&laquo;</span>
               </a>
-
             </li>
-
 
             <!-- Page Numbers -->
-            <?php foreach ($pages as $pageNumber): ?>
-
-              <li
-                class="page-item <?= $paginator->currentPage === $pageNumber ? 'active' : '' ?>"
-              >
-
+            <?php foreach ($pages as $page): ?>
+              <li class="page-item<?= $paginator->currentPage == $page ? ' active' : '' ?>">
                 <a
                   role="button"
-                  href="/?page=<?= $pageNumber ?>&limit=<?= $limit ?>"
-                  class="page-link"
-                >
-                  <?= $pageNumber ?>
+                  href="/?page=<?= $page ?>&limit=<?= $limit ?>"
+                  class="page-link">
+                  <?= $page ?>
                 </a>
-
               </li>
-
             <?php endforeach; ?>
 
-
             <!-- Next -->
-            <li class="page-item">
-
+            <li class="page-item<?= $paginator->getNextPage() ? '' : ' disabled' ?>">
               <a
                 role="button"
-                href="/?page=<?= $paginator->getNextPage() ?: $paginator->currentPage ?>&limit=<?= $limit ?>"
-                class="page-link"
-                <?= $paginator->getNextPage() === false ? 'aria-disabled="true"' : '' ?>
-              >
+                href="/?page=<?= $paginator->getNextPage() ?>&limit=<?= $limit ?>"
+                class="page-link">
                 <span>&raquo;</span>
               </a>
-
             </li>
-
           </ul>
-
         </nav>
-        <!-- End Pagination -->
-
+        <!-- Pagination Ends Here -->
       </div>
     </div>
   </div>
@@ -198,62 +165,92 @@ include_once __DIR__ . '/../src/partials/header.php';
 
   <!-- Delete Confirmation Modal -->
   <div id="delete-confirm" class="modal fade" tabindex="-1">
-
     <div class="modal-dialog">
-
       <div class="modal-content">
-
         <div class="modal-header">
-
-          <h4 class="modal-title">
-            Confirmation
-          </h4>
-
+          <h4 class="modal-title">Confirmation</h4>
           <button
             type="button"
             class="btn-close"
             data-bs-dismiss="modal">
           </button>
-
         </div>
-
         <div class="modal-body">
           Do you want to delete this contact?
         </div>
-
         <div class="modal-footer">
-
           <button
             type="button"
             data-bs-dismiss="modal"
             class="btn btn-danger"
-            id="delete"
-          >
+            id="delete">
             Delete
           </button>
-
           <button
             type="button"
             data-bs-dismiss="modal"
-            class="btn btn-default"
-          >
+            class="btn btn-default">
             Cancel
           </button>
-
         </div>
-
       </div>
-
     </div>
-
   </div>
 
-
-  <?php include_once __DIR__ . '/../src/partials/footer.php' ?>
-
+  <?php include_once __DIR__ . '/../src/partials/footer.php'; ?>
   <script>
-  </script>
+    const deleteButtons = document.querySelectorAll(
+      'button[name="delete-contact"]'
+    );
 
+    deleteButtons.forEach(button => {
+
+      button.addEventListener('click', function(e) {
+
+        e.preventDefault();
+
+        const form = button.closest('form');
+
+        const nameTd = button
+          .closest('tr')
+          .querySelector('td:nth-child(2)');
+
+        if (nameTd) {
+          document.querySelector('.modal-body').textContent =
+            `Do you want to delete "${nameTd.textContent}"?`;
+        }
+
+        const submitForm = function() {
+          form.submit();
+        };
+
+        document
+          .getElementById('delete')
+          .addEventListener('click', submitForm, {
+            once: true
+          });
+
+        const modalEl = document.getElementById('delete-confirm');
+
+        modalEl.addEventListener(
+          'hidden.bs.modal',
+          function() {
+            document
+              .getElementById('delete')
+              .removeEventListener('click', submitForm);
+          }
+        );
+
+        const confirmModal = new bootstrap.Modal(modalEl, {
+          backdrop: 'static',
+          keyboard: false
+        });
+
+        confirmModal.show();
+      });
+
+    });
+  </script>
 </body>
 
 </html>

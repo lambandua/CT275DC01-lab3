@@ -8,37 +8,53 @@ $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $contactData = [
-        'name' => $_POST['name'] ?? '',
-        'phone' => $_POST['phone'] ?? '',
-        'notes' => $_POST['notes'] ?? ''
-    ];
+  $avatar = '';
 
-    $contact = new Contact($PDO);
+  if (
+    isset($_FILES['avatar'])
+    && $_FILES['avatar']['error'] === UPLOAD_ERR_OK
+  ) {
+    $uploadDir = __DIR__ . '/uploads/';
 
-    // Kiểm tra dữ liệu
-    $errors = $contact->validate($contactData);
+    $extension = strtolower(
+      pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION)
+    );
 
-    // Nếu không có lỗi thì lưu vào database
-    if (empty($errors)) {
+    $fileName = uniqid('avatar_', true) . '.' . $extension;
 
-        $contact->fill($contactData);
+    move_uploaded_file(
+      $_FILES['avatar']['tmp_name'],
+      $uploadDir . $fileName
+    );
 
-        $contact->save();
+    $avatar = '/uploads/' . $fileName;
+  }
 
-        // Chuyển về trang danh sách
-        redirect('/');
+  $contactData = [
+    'name' => $_POST['name'] ?? '',
+    'phone' => $_POST['phone'] ?? '',
+    'avatar' => $avatar,
+    'notes' => $_POST['notes'] ?? '',
+  ];
+
+  $contact = new Contact($PDO);
+
+  $errors = $contact->validate($contactData);
+
+  if (empty($errors)) {
+    $contact->fill($contactData);
+
+    if ($contact->save()) {
+      redirect('/');
     }
+  }
 }
-
 include_once __DIR__ . '/../src/partials/header.php';
 ?>
 
 <body>
-
   <?php include_once __DIR__ . '/../src/partials/navbar.php' ?>
 
-  <!-- Main Page Content -->
   <div class="container">
 
     <?php
@@ -49,14 +65,11 @@ include_once __DIR__ . '/../src/partials/header.php';
     <div class="row">
       <div class="col-12">
 
-        <form method="post" class="col-md-6 offset-md-3">
+        <form method="post" enctype="multipart/form-data" class="col-md-6 offset-md-3">
 
           <!-- Name -->
           <div class="mb-3">
-
-            <label for="name" class="form-label">
-              Name
-            </label>
+            <label for="name" class="form-label">Name</label>
 
             <input
               type="text"
@@ -65,86 +78,71 @@ include_once __DIR__ . '/../src/partials/header.php';
               maxlength="255"
               id="name"
               placeholder="Enter Name"
-              value="<?= isset($_POST['name']) ? html_escape($_POST['name']) : '' ?>"
-            />
+              value="<?= isset($_POST['name']) ? html_escape($_POST['name']) : '' ?>" />
 
             <?php if (isset($errors['name'])) : ?>
-
               <span class="invalid-feedback">
-                <strong>
-                  <?= html_escape($errors['name']) ?>
-                </strong>
+                <strong><?= $errors['name'] ?></strong>
               </span>
-
             <?php endif ?>
-
           </div>
-
 
           <!-- Phone -->
           <div class="mb-3">
-
-            <label for="phone" class="form-label">
-              Phone Number
-            </label>
+            <label for="phone" class="form-label">Phone Number</label>
 
             <input
               type="text"
               name="phone"
               class="form-control<?= isset($errors['phone']) ? ' is-invalid' : '' ?>"
-              maxlength="15"
+              maxlength="255"
               id="phone"
               placeholder="Enter Phone"
-              value="<?= isset($_POST['phone']) ? html_escape($_POST['phone']) : '' ?>"
-            />
+              value="<?= isset($_POST['phone']) ? html_escape($_POST['phone']) : '' ?>" />
 
             <?php if (isset($errors['phone'])) : ?>
-
               <span class="invalid-feedback">
-                <strong>
-                  <?= html_escape($errors['phone']) ?>
-                </strong>
+                <strong><?= $errors['phone'] ?></strong>
               </span>
-
             <?php endif ?>
-
           </div>
-
 
           <!-- Notes -->
           <div class="mb-3">
-
-            <label for="notes" class="form-label">
-              Notes
-            </label>
+            <label for="notes" class="form-label">Notes</label>
 
             <textarea
               name="notes"
               id="notes"
               class="form-control<?= isset($errors['notes']) ? ' is-invalid' : '' ?>"
-              placeholder="Enter notes (maximum character limit: 255)"
-              maxlength="255"
-            ><?= isset($_POST['notes']) ? html_escape($_POST['notes']) : '' ?></textarea>
+              placeholder="Enter notes (maximum character limit: 255)"><?= isset($_POST['notes']) ? html_escape($_POST['notes']) : '' ?></textarea>
 
             <?php if (isset($errors['notes'])) : ?>
-
               <span class="invalid-feedback">
-                <strong>
-                  <?= html_escape($errors['notes']) ?>
-                </strong>
+                <strong><?= $errors['notes'] ?></strong>
               </span>
-
             <?php endif ?>
+          </div>
+          <!-- Avatar -->
+          <div class="mb-3">
+
+            <label for="avatar" class="form-label">
+              Avatar
+            </label>
+
+            <input
+              type="file"
+              name="avatar"
+              id="avatar"
+              class="form-control"
+              accept="image/*">
 
           </div>
-
-
           <!-- Submit -->
           <button
             type="submit"
             name="submit"
-            class="btn btn-primary"
-          >
+            class="btn btn-primary">
             Add Contact
           </button>
 
